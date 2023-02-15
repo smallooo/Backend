@@ -19,6 +19,7 @@ public struct XQJApiService {
     private static var cache: [String: Codable] = [:]
     
     public enum Endpoint {
+        case login
         case villagers
         case villagerIcon(id: Int)
         case villagerImage(id: Int)
@@ -28,8 +29,10 @@ public struct XQJApiService {
         
         public func path() -> String {
             switch self {
-            case .villagers:
+            case .login:
                 return "test"
+            case .villagers:
+                return "villagers"
             case let .villagerIcon(id):
                 return "icons/villagers/\(id)"
             case let .villagerImage(id):
@@ -56,26 +59,24 @@ public struct XQJApiService {
         return component.url!
     }
     
-    public static func fetch(endpoint: Endpoint) -> String  {
-//        if let cached = Self.cache[endpoint.path()] as? T {
-//            return Just(cached)
-//                .setFailureType(to: APIError.self)
-//                .eraseToAnyPublisher()
-//        }
+    public static func fetch<T: Codable>(endpoint: Endpoint) -> AnyPublisher<T ,APIError>  {
         let url = URL(string: "http://127.0.0.1:8000/test")!
-        let pub = URLSession.shared
-            .dataTaskPublisher(for: url)
-            .tryMap() { element -> Data in
-                guard let httpResponse = element.response as? HTTPURLResponse,
-                    httpResponse.statusCode == 200 else {
-                        throw URLError(.badServerResponse)
-                    }
-                return element.data
-                }
-            .decode(type: User.self, decoder: JSONDecoder())
-            
-        
-        
-        return ""
+        if let cached = Self.cache[endpoint.path()] as? T {
+            return Just(cached)
+                .setFailureType(to: APIError.self)
+                .eraseToAnyPublisher()
+        }
+        let request = URLRequest(url: makeURL(endpoint: endpoint))
+        return URLSession.shared.dataTaskPublisher(for: request)
+            .tryMap{ data, response in
+                return try APIError.processResponse(data: data, response: response)
+        }
+        .decode(type: T.self, decoder: Self.decoder)
+        .mapError{ APIError.parseError(reason: $0.localizedDescription) }
+        .map({ result in
+            Self.cache[endpoint.path()] = result
+            return result
+        })
+        .eraseToAnyPublisher()
     }
 }
