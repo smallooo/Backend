@@ -29,8 +29,8 @@ public struct XQJApiService {
         
         public func path() -> String {
             switch self {
-            case .login:
-                return "test"
+            case let .login:
+                return "auth"
             case .villagers:
                 return "villagers"
             case let .villagerIcon(id):
@@ -54,19 +54,31 @@ public struct XQJApiService {
     private static let decoder = JSONDecoder()
     
     public static func makeURL(endpoint: Endpoint) -> URL {
-        let component = URLComponents(url: BASE_URL.appendingPathComponent(endpoint.path()),
-                                      resolvingAgainstBaseURL: false)!
+        var component = URLComponents(url: BASE_URL.appendingPathComponent(endpoint.path()), resolvingAgainstBaseURL: false)!
+        let queryItemToken = URLQueryItem(name: "username", value: "123456")
+        let queryItemQuery = URLQueryItem(name: "password", value: "666666")
+        
+        component.queryItems = [queryItemToken, queryItemQuery]
         return component.url!
     }
     
     public static func fetch<T: Codable>(endpoint: Endpoint) -> AnyPublisher<T ,APIError>  {
-        let url = URL(string: "http://127.0.0.1:8000/test")!
         if let cached = Self.cache[endpoint.path()] as? T {
             return Just(cached)
                 .setFailureType(to: APIError.self)
                 .eraseToAnyPublisher()
         }
-        let request = URLRequest(url: makeURL(endpoint: endpoint))
+        var request = URLRequest(url: makeURL(endpoint: endpoint))
+        
+//        let queryItems = [URLQueryItem(name: "id", value: "1"), URLQueryItem(name: "id", value: "2")]
+//        request.queryItems = queryItems
+        
+        
+//        request.httpMethod = "POST"
+//        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+//        request.addValue("application/json", forHTTPHeaderField: "Accept")
+//        request.HTTPBody = try! JSONSerialization.dataWithJSONObject(parameters, options: [])
+        
         return URLSession.shared.dataTaskPublisher(for: request)
             .tryMap{ data, response in
                 return try APIError.processResponse(data: data, response: response)
