@@ -53,31 +53,28 @@ public struct XQJApiService {
     
     private static let decoder = JSONDecoder()
     
-    public static func makeURL(endpoint: Endpoint) -> URL {
+    public static func makeURL(endpoint: Endpoint, queryList :[URLQueryItem] = []) -> URL {
         var component = URLComponents(url: BASE_URL.appendingPathComponent(endpoint.path()), resolvingAgainstBaseURL: false)!
-        let queryItemToken = URLQueryItem(name: "username", value: "123456")
-        let queryItemQuery = URLQueryItem(name: "password", value: "666666")
-        
-        component.queryItems = [queryItemToken, queryItemQuery]
+        if(!queryList.isEmpty){ component.queryItems = queryList }
         return component.url!
     }
     
-    public static func fetch<T: Codable>(endpoint: Endpoint) -> AnyPublisher<T ,APIError>  {
-        if let cached = Self.cache[endpoint.path()] as? T {
-            return Just(cached)
-                .setFailureType(to: APIError.self)
-                .eraseToAnyPublisher()
-        }
-        var request = URLRequest(url: makeURL(endpoint: endpoint))
+ 
+    public static func fetch<T: Codable>(endpoint: Endpoint, queryList : [URLQueryItem] = [] ) -> AnyPublisher<T ,APIError>  {
+        //请求缓存
+//        if let cached = Self.cache[endpoint.path()] as? T {
+//            return Just(cached)
+//                .setFailureType(to: APIError.self)
+//                .eraseToAnyPublisher()
+//        }
+        var request = URLRequest(url: makeURL(endpoint: endpoint, queryList: queryList))
         
-//        let queryItems = [URLQueryItem(name: "id", value: "1"), URLQueryItem(name: "id", value: "2")]
-//        request.queryItems = queryItems
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.addValue("application/json", forHTTPHeaderField: "Accept")
+        request.addValue("application/json", forHTTPHeaderField: "token")
         
         
-//        request.httpMethod = "POST"
-//        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-//        request.addValue("application/json", forHTTPHeaderField: "Accept")
-//        request.HTTPBody = try! JSONSerialization.dataWithJSONObject(parameters, options: [])
+        
         
         return URLSession.shared.dataTaskPublisher(for: request)
             .tryMap{ data, response in
