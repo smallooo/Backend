@@ -81,7 +81,10 @@ public struct XQJApiService {
                 return try APIError.processResponse(data: data, response: response)
         }
         .decode(type: T.self, decoder: Self.decoder)
-        .mapError{ APIError.parseError(reason: $0.localizedDescription) }
+        .mapError{
+            APIError.parseError(reason: $0.localizedDescription)
+            
+        }
         .map({ result in
             Self.cache[endpoint.path()] = result
             return result

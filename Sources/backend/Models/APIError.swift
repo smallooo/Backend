@@ -15,9 +15,16 @@ public enum APIError: Error {
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.unknown
         }
+        
+        //let responseData = String(data: httpResponse, encoding: NSUTF8StringEncoding)
+        print(response)
+        
         if (httpResponse.statusCode == 404) {
             throw APIError.message(reason: "Resource not found");
         }
+        
+        
+            
         return data
     }
 
