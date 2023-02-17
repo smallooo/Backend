@@ -8,6 +8,7 @@
 import Foundation
 import Combine
 
+
 struct User: Codable {
     let code: Int
     let msg: String
